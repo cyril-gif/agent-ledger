@@ -1,4 +1,4 @@
-const CACHE = 'momo-ledger-v2'; // bumped from v1
+const CACHE = 'momo-ledger-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-// 👇 this is the part that was missing
+// Required for the "Reload" button to actually skip the waiting worker
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
