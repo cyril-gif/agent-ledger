@@ -200,7 +200,6 @@
   }
   .field{margin-bottom:14px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .row-3{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
   /* Toggle buttons */
   .toggle{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
@@ -255,12 +254,8 @@
     display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;
     background:var(--primary-light);color:var(--primary-dark);font-weight:700;margin-right:5px;
   }
-  .tag.date-tag{
-    background:#e2e8f0;color:#334155;
-  }
-  .tag.past-tag{
-    background:#fef3c7;color:#92400e;
-  }
+  .tag.date-tag{background:#e2e8f0;color:#334155}
+  .tag.past-tag{background:#fef3c7;color:#92400e}
   .day-header{
     font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;
     letter-spacing:.5px;padding:14px 0 6px;
@@ -726,9 +721,13 @@
 
       <div class="card">
         <h2>App</h2>
-        <div class="field" style="margin-bottom:0">
+        <div class="field">
           <button class="btn ghost" onclick="installApp()">Install app</button>
           <p class="hint">Add Momo Ledger to your home screen for quick, offline access.</p>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <button class="btn ghost" onclick="checkForUpdates(true)">Check for updates</button>
+          <p class="hint" id="versionHint">You're on the latest version.</p>
         </div>
       </div>
 
@@ -861,11 +860,6 @@ function formatTime(iso){
 }
 function isToday(iso){
   return todayKey() === dateKeyFromDate(new Date(iso));
-}
-
-function isSameDateStr(iso, ymd){
-  const d = new Date(iso);
-  return dateKeyFromDate(d) === ymd;
 }
 
 function toast(msg, type='info'){
@@ -1015,7 +1009,6 @@ function prepareNewForm(){
   $('#txFee').value = '0';
   $('#txCommission').value = '0';
 
-  // Default date/time = now
   $('#txDate').value = nowDateStr();
   $('#txTime').value = nowTimeStr();
   updateDateChip();
@@ -1036,14 +1029,12 @@ function updateDateChip(){
     chip.style.color = 'var(--primary-dark)';
     txt.textContent = 'Today (' + ymd + ')';
   } else {
-    // Past date — highlight it so the agent notices
     chip.style.background = '#fef3c7';
     chip.style.color = '#92400e';
     txt.textContent = label;
   }
 }
 
-// Update the chip whenever date changes
 document.addEventListener('change', (e) => {
   if(e.target && e.target.id === 'txDate') updateDateChip();
 });
@@ -1066,15 +1057,14 @@ function saveTransaction(ev){
   const name = $('#txName').value.trim() || 'Unknown';
   const note = $('#txNote').value.trim();
 
-  const dateVal = $('#txDate').value; // YYYY-MM-DD
-  const timeVal = $('#txTime').value; // HH:MM
+  const dateVal = $('#txDate').value;
+  const timeVal = $('#txTime').value;
 
   if(!phone){ toast('Customer phone is required','error'); return; }
   if(!amount || amount <= 0){ toast('Enter a valid amount','error'); return; }
   if(!dateVal){ toast('Please pick a date','error'); return; }
   if(!timeVal){ toast('Please pick a time','error'); return; }
 
-  // Build local timestamp from date + time
   const localDate = new Date(dateVal + 'T' + timeVal + ':00');
   if(isNaN(localDate.getTime())){ toast('Invalid date/time','error'); return; }
 
@@ -1114,8 +1104,8 @@ function saveTransaction(ev){
     type: selectedType,
     amount, fee, commission, note,
     timestamp: localDate.toISOString(),
-    date: dateVal,   // store the YYYY-MM-DD the agent chose
-    time: timeVal    // store the HH:MM the agent chose
+    date: dateVal,
+    time: timeVal
   };
   db.transactions.push(tx);
   saveDB();
@@ -1144,7 +1134,6 @@ function renderDashboard(){
   $('#floatTelecel').textContent = money(db.floats.eMoney.Telecel);
   $('#floatAirtelTigo').textContent = money(db.floats.eMoney.AirtelTigo);
 
-  // Sort by timestamp for the most recent 5
   const recent = db.transactions.slice().sort((a,b) =>
     new Date(b.timestamp) - new Date(a.timestamp)
   ).slice(0, 5);
@@ -1238,7 +1227,6 @@ function renderHistory(){
     return;
   }
 
-  // Group by the chosen YYYY-MM-DD (falls back to timestamp date for old records)
   const groups = {};
   txs.forEach(t => {
     const key = t.date || dateKeyFromDate(new Date(t.timestamp));
@@ -1354,10 +1342,53 @@ function dismissInstall(){
   localStorage.setItem('installDismissed', '1');
 }
 
+function showUpdateBanner(){
+  const ub = document.getElementById('updateBanner');
+  if(ub) ub.hidden = false;
+}
+
+function hideUpdateBanner(){
+  const ub = document.getElementById('updateBanner');
+  if(ub) ub.hidden = true;
+}
+
+/* Robust update: tries waiting worker, then installing worker, then hard reload */
 function applyUpdate(){
+  hideUpdateBanner();
+
   if(swRegistration && swRegistration.waiting){
     swRegistration.waiting.postMessage({ type:'SKIP_WAITING' });
+    // Safety net if controllerchange doesn't fire
+    setTimeout(() => { window.location.reload(); }, 1500);
+    return;
   }
+
+  if(swRegistration && swRegistration.installing){
+    swRegistration.installing.postMessage({ type:'SKIP_WAITING' });
+    setTimeout(() => { window.location.reload(); }, 1500);
+    return;
+  }
+
+  // Nothing waiting — force a network-first reload
+  window.location.reload();
+}
+
+/* Manual check for updates (Settings button) */
+function checkForUpdates(showFeedback){
+  if(!('serviceWorker' in navigator) || !swRegistration){
+    if(showFeedback) toast('Updates not supported in this browser', 'error');
+    return;
+  }
+  swRegistration.update().then(() => {
+    if(swRegistration.waiting || swRegistration.installing){
+      showUpdateBanner();
+      if(showFeedback) toast('Update found — tap Reload', 'success');
+    } else {
+      if(showFeedback) toast('You are on the latest version', 'success');
+    }
+  }).catch(() => {
+    if(showFeedback) toast('Could not check for updates', 'error');
+  });
 }
 
 function initPWA(){
@@ -1365,20 +1396,25 @@ function initPWA(){
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').then((reg) => {
         swRegistration = reg;
+
         if(reg.waiting){
-          const ub = document.getElementById('updateBanner');
-          if(ub) ub.hidden = false;
+          showUpdateBanner();
         }
+
         reg.addEventListener('updatefound', () => {
           const nw = reg.installing;
           if(!nw) return;
           nw.addEventListener('statechange', () => {
             if(nw.state === 'installed' && navigator.serviceWorker.controller){
-              const ub = document.getElementById('updateBanner');
-              if(ub) ub.hidden = false;
+              showUpdateBanner();
             }
           });
         });
+
+        // Periodically check for updates every hour while app is open
+        setInterval(() => {
+          reg.update().catch(() => {});
+        }, 60 * 60 * 1000);
       }).catch(err => console.warn('SW failed:', err));
 
       navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -1418,7 +1454,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('#txAmount').addEventListener('input', suggestFeeAndCommission);
 
-  // PWA shortcut params (?tab=new, ?tab=history)
   const params = new URLSearchParams(location.search);
   const shortcutTab = params.get('tab');
   if(shortcutTab && db.agent && document.getElementById('tab-' + shortcutTab)){
