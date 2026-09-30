@@ -2,8 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Agent Ledger</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Momo Ledger</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f766e" />
+<meta name="description" content="Offline-first ledger for mobile money agents" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Momo Ledger" />
+
 <style>
   :root{
     --primary:#0f766e; --primary-dark:#115e59; --primary-light:#ccfbf1;
@@ -16,6 +28,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--bg); color:var(--text); font-size:15px; line-height:1.5;
     padding-bottom:80px;
+    padding-top:env(safe-area-inset-top);
   }
   .app{max-width:640px;margin:0 auto;padding:0 14px}
 
@@ -157,7 +170,41 @@
 
   .section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px}
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
-  .net-tag{font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#f1f5f9;color:#334155}
+
+  /* Install banner */
+  .install-banner{
+    position:fixed;left:50%;bottom:86px;transform:translateX(-50%);
+    background:#0f172a;color:#fff;border-radius:14px;padding:12px 14px;
+    display:flex;align-items:center;gap:10px;z-index:40;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+    max-width:calc(100% - 28px);width:420px;
+  }
+  .install-banner .ib-info{flex:1;min-width:0}
+  .install-banner .ib-title{font-size:13px;font-weight:700}
+  .install-banner .ib-sub{font-size:11px;opacity:.75;margin-top:1px}
+  .install-banner button{
+    background:var(--primary);color:#fff;border:none;padding:8px 14px;border-radius:9px;
+    font-size:12px;font-weight:700;cursor:pointer;
+  }
+  .install-banner .ib-x{
+    background:transparent;color:#94a3b8;padding:8px;font-size:14px;
+  }
+
+  /* Update prompt */
+  .update-banner{
+    position:fixed;left:50%;bottom:86px;transform:translateX(-50%);
+    background:var(--primary-dark);color:#fff;border-radius:14px;padding:12px 14px;
+    display:flex;align-items:center;gap:10px;z-index:41;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+    max-width:calc(100% - 28px);width:420px;
+  }
+  .update-banner .ib-info{flex:1;min-width:0}
+  .update-banner .ib-title{font-size:13px;font-weight:700}
+  .update-banner .ib-sub{font-size:11px;opacity:.85;margin-top:1px}
+  .update-banner button{
+    background:#fff;color:var(--primary-dark);border:none;padding:8px 14px;border-radius:9px;
+    font-size:12px;font-weight:700;cursor:pointer;
+  }
 </style>
 </head>
 <body>
@@ -165,7 +212,7 @@
 <!-- ================= SETUP ================= -->
 <div id="setupScreen">
   <div class="logo">📒</div>
-  <h2>Agent Ledger</h2>
+  <h2>Momo Ledger</h2>
   <p class="lead">Set up your account to start recording transactions</p>
 
   <div class="card">
@@ -205,7 +252,7 @@
   <header>
     <div class="wrap">
       <div>
-        <h1 id="headerName">Agent Ledger</h1>
+        <h1 id="headerName">Momo Ledger</h1>
         <div class="sub" id="headerPhone"></div>
       </div>
       <div class="avatar" id="headerAvatar">A</div>
@@ -406,6 +453,14 @@
       </div>
 
       <div class="card">
+        <h2>App</h2>
+        <div class="field" style="margin-bottom:0">
+          <button class="btn ghost" onclick="installApp()">Install app</button>
+          <p class="hint">Add Momo Ledger to your home screen for quick, offline access.</p>
+        </div>
+      </div>
+
+      <div class="card">
         <h2>Data</h2>
         <div class="field">
           <button class="btn ghost" onclick="saveSettings()">Save changes</button>
@@ -439,6 +494,25 @@
       <button data-tab="settings"><span class="ico">⚙️</span>Settings</button>
     </div>
   </nav>
+
+  <!-- Install banner -->
+  <div id="installBanner" class="install-banner" hidden>
+    <div class="ib-info">
+      <div class="ib-title">Install Momo Ledger</div>
+      <div class="ib-sub">Add to home screen for offline access</div>
+    </div>
+    <button onclick="installApp()">Install</button>
+    <button class="ib-x" onclick="dismissInstall()">✕</button>
+  </div>
+
+  <!-- Update banner -->
+  <div id="updateBanner" class="update-banner" hidden>
+    <div class="ib-info">
+      <div class="ib-title">New version available</div>
+      <div class="ib-sub">Reload to get the latest updates</div>
+    </div>
+    <button onclick="applyUpdate()">Reload</button>
+  </div>
 </div>
 
 <script>
@@ -499,7 +573,10 @@ function todayKey(){
   const d = new Date();
   return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 }
-function isToday(iso){ return todayKey() === (()=>{const d=new Date(iso);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();})(); }
+function isToday(iso){
+  const d = new Date(iso);
+  return todayKey() === (d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate());
+}
 
 function toast(msg, type='info'){
   const el = document.createElement('div');
@@ -594,18 +671,16 @@ function quickAction(type){
 }
 
 function suggestFeeAndCommission(){
-  // Suggestion only — agent can override
   const rates = { deposit:0, withdrawal:1, airtime:0, bill:0 };
   const commissionRates = { deposit:0.5, withdrawal:1, airtime:5, bill:1 };
   const amount = parseFloat($('#txAmount').value) || 0;
   const fee = amount * (rates[selectedType]||0) / 100;
-  const comm = amount * (commissionRates[selectedType]||0) / 100;
-  $('#txFee').value = fee ? fee.toFixed(2) : '0';
-  $('#txCommission').value = comm ? comm.toFixed(2) : '0';
+  const comm = amount * (commissionRatesats[selectedType]||0) / .e100;
+  $('#txFee').value =Money fee ? fee.toFixed(2) : '0';
+.A  $('#txCommission').value = comm ? comm.toFixed(2irt) : '0';
 }
 
-function prepareNewForm(){
-  // Reset
+elfunction prepareNewForm(){
   $('#txForm').reset();
   selectedNetwork = 'MTN';
   selectedType = 'deposit';
@@ -637,7 +712,6 @@ function saveTransaction(ev){
   if(!phone){ toast('Customer phone is required','error'); return; }
   if(!amount || amount <= 0){ toast('Enter a valid amount','error'); return; }
 
-  // Float check
   if(selectedType === 'deposit'){
     if(db.floats.eMoney[selectedNetwork] < amount){
       toast('Not enough ' + selectedNetwork + ' e-money', 'error'); return;
@@ -649,7 +723,6 @@ function saveTransaction(ev){
     }
   }
 
-  // Save/update customer
   let customer = db.customers.find(c => c.phone === phone);
   if(!customer){
     customer = { id:uid(), name, phone, createdAt:new Date().toISOString() };
@@ -658,7 +731,6 @@ function saveTransaction(ev){
     customer.name = name;
   }
 
-  // Apply float changes
   if(selectedType === 'deposit' || selectedType === 'airtime' || selectedType === 'bill'){
     db.floats.cash += amount;
     db.floats.eMoney[selectedNetwork] -= amount;
@@ -667,7 +739,6 @@ function saveTransaction(ev){
     db.floats.eMoney[selectedNetwork] += amount;
   }
 
-  // Record transaction
   const tx = {
     id: uid(),
     customerId: customer.id,
@@ -702,7 +773,7 @@ function renderDashboard(){
   $('#floatCash').textContent = money(db.floats.cash);
   $('#floatMTN').textContent = money(db.floats.eMoney.MTN);
   $('#floatTelecel').textContent = money(db.floats.eMoney.Telecel);
-  $('#floatAirtelTigo').textContent = money(db.floats.eMoney.AirtelTigo);
+  $('#floatAirtelTigo').textContent = money(db.floTigo);
 
   const recent = db.transactions.slice(-5).reverse();
   const box = $('#dashRecent');
@@ -782,7 +853,6 @@ function renderHistory(){
     return;
   }
 
-  // Group by day
   const groups = {};
   txs.forEach(t => {
     const key = new Date(t.timestamp).toDateString();
@@ -846,7 +916,7 @@ function exportCSV(){
   const blob = new Blob([csv], { type:'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'agent-ledger-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.download = 'momo-ledger-' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -866,19 +936,105 @@ function renderAll(){
   renderSettings();
 }
 
+/* ================= PWA ================= */
+let deferredPrompt = null;
+let swRegistration = null;
+let refreshing = false;
+
+function installApp(){
+  if(!deferredPrompt){
+    toast('Use your browser menu → "Add to Home screen"', 'info');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then((choice) => {
+    if(choice.outcome === 'accepted'){
+      const b = document.getElementById('installBanner');
+      if(b) b.hidden = true;
+    }
+    deferredPrompt = null;
+  });
+}
+
+function dismissInstall(){
+  const b = document.getElementById('installBanner');
+  if(b) b.hidden = true;
+  localStorage.setItem('installDismissed', '1');
+}
+
+function applyUpdate(){
+  if(swRegistration && swRegistration.waiting){
+    swRegistration.waiting.postMessage({ type:'SKIP_WAITING' });
+  }
+}
+
+function initPWA(){
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        swRegistration = reg;
+
+        // If there's already a waiting worker, show update banner
+        if(reg.waiting){
+          const ub = document.getElementById('updateBanner');
+          if(ub) ub.hidden = false;
+        }
+
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if(!nw) return;
+          nw.addEventListener('statechange', () => {
+            if(nw.state === 'installed' && navigator.serviceWorker.controller){
+              const ub = document.getElementById('updateBanner');
+              if(ub) ub.hidden = false;
+            }
+          });
+        });
+      }).catch(err => console.warn('SW failed:', err));
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if(refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if(!localStorage.getItem('installDismissed')){
+      const b = document.getElementById('installBanner');
+      if(b) b.hidden = false;
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    const b = document.getElementById('installBanner');
+    if(b) b.hidden = true;
+    toast('App installed!', 'success');
+  });
+}
+
 /* ================= Init ================= */
 document.addEventListener('DOMContentLoaded', () => {
   loadDB();
   initToggles();
   startApp();
+  initPWA();
 
-  // Nav
   $$('nav button').forEach(b => {
     b.addEventListener('click', () => switchTab(b.dataset.tab));
   });
 
-  // Suggest fee/commission as amount changes
   $('#txAmount').addEventListener('input', suggestFeeAndCommission);
+
+  // Handle PWA shortcuts (?tab=new, ?tab=history)
+  const params = new URLSearchParams(location.search);
+  const shortcutTab = params.get('tab');
+  if(shortcutTab && db.agent && document.getElementById('tab-' + shortcutTab)){
+    setTimeout(() => switchTab(shortcutTab), 100);
+  }
 });
 </script>
 </body>
