@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-<title>Momo Ledger</title>
+<title>Momo Ledger — The book, done right</title>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#0f766e" />
-<meta name="description" content="Offline-first ledger for mobile money agents" />
+<meta name="description" content="Offline-first ledger for mobile money agents. Log transactions, track float, know your daily profit." />
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="icon.svg" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -24,24 +24,128 @@
     --danger:#dc2626; --success:#16a34a; --radius:14px;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--bg); color:var(--text); font-size:15px; line-height:1.5;
-    padding-bottom:80px;
-    padding-top:env(safe-area-inset-top);
   }
+  body.app-mode{padding-bottom:80px;padding-top:env(safe-area-inset-top)}
   .app{max-width:640px;margin:0 auto;padding:0 14px}
 
+  /* ============ LANDING ============ */
+  #landingScreen{min-height:100vh;background:var(--bg)}
+
+  .hero{
+    background:linear-gradient(160deg,#0f766e 0%,#115e59 55%,#134e4a 100%);
+    color:#fff; padding:52px 20px 60px; position:relative; overflow:hidden;
+  }
+  .hero::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 15% 8%, rgba(255,255,255,.13), transparent 42%),
+      radial-gradient(circle at 92% 82%, rgba(245,158,11,.20), transparent 48%);
+  }
+  .hero-inner{max-width:640px;margin:0 auto;position:relative;text-align:center}
+  .brand{display:inline-flex;align-items:center;gap:10px;margin-bottom:30px}
+  .brand-mark{
+    width:44px;height:44px;border-radius:12px;
+    background:rgba(255,255,255,.15);display:grid;place-items:center;font-size:22px;
+    border:1px solid rgba(255,255,255,.22);
+  }
+  .brand-name{font-weight:700;font-size:16px;letter-spacing:.3px}
+  .hero h1{
+    font-size:33px;line-height:1.14;font-weight:800;letter-spacing:-.6px;
+    margin-bottom:14px;
+  }
+  .hero .lede{
+    font-size:15.5px;line-height:1.55;opacity:.92;margin-bottom:28px;
+  }
+  .hero-cta{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
+  .hero-cta .btn{padding:15px 20px;font-size:15px;border-radius:12px}
+  .hero-cta .btn.ghost{
+    background:rgba(255,255,255,.12);color:#fff;
+    border:1.5px solid rgba(255,255,255,.25);
+  }
+  .hero-cta .btn.ghost:active{background:rgba(255,255)}
+  .hero-badges{
+    display:flex;flex-wrap:wrap;gap:7px;justify-content:center;font-size:12px;
+  }
+  .hero-badges span{
+    background:rgba(255,255,255,.1);padding:6px 12px;border-radius:20px;
+    border:1px solid rgba(255,255,255,.16);white-space:nowrap;
+  }
+
+  .section-inner{max-width:640px;margin:0 auto;padding:0 20px}
+
+  .features{padding:52px 0 40px}
+  .features h2{
+    font-size:21px;font-weight:700;letter-spacing:-.3px;margin-bottom:22px;
+    text-align:center;color:var(--text);
+  }
+  .feature-grid{display:grid;grid-template-columns:1fr;gap:12px}
+  .feature{
+    background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;
+    box-shadow:0 1px 2px rgba(0,0,0,.03);
+  }
+  .f-ico{
+    width:40px;height:40px;border-radius:11px;background:var(--primary-light);
+    display:grid;place-items:center;font-size:19px;margin-bottom:12px;
+  }
+  .feature h3{font-size:15px;font-weight:700;margin-bottom:5px}
+  .feature p{font-size:13px;color:var(--muted);line-height:1.5}
+
+  .steps{padding:12px 0 48px}
+  .steps h2{
+    font-size:21px;font-weight:700;letter-spacing:-.3px;margin-bottom:16px;
+    text-align:center;
+  }
+  .step{
+    display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);
+  }
+  .step:last-child{border-bottom:none}
+  .step-num{
+    flex-shrink:0;width:32px;height:32px;border-radius:50%;
+    background:var(--primary);color:#fff;font-weight:700;font-size:14px;
+    display:grid;place-items:center;
+  }
+  .step-body h3{font-size:15px;font-weight:700;margin-bottom:3px}
+  .step-body p{font-size:13px;color:var(--muted);line-height:1.5}
+
+  .cta-final{padding:0 20px 40px}
+  .cta-final .card-cta{
+    max-width:640px;margin:0 auto;
+    background:linear-gradient(160deg,#0f766e,#115e59);
+    border-radius:18px;padding:30px 22px;text-align:center;color:#fff;
+    box-shadow:0 10px 30px rgba(15,118,110,.25);
+    position:relative;overflow:hidden;
+  }
+  .card-cta::before{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle at 85% 15%, rgba(245,158,11,.25), transparent 55%);
+  }
+  .card-cta h3{
+    font-size:20px;font-weight:700;margin-bottom:8px;letter-spacing:-.3px;
+    position:relative;
+  }
+  .card-cta p{font-size:13px;opacity:.92;margin-bottom:20px;line-height:1.5;position:relative}
+  .card-cta .btn{background:#fff;color:var(--primary-dark);position:relative}
+  .card-cta .btn:active{background:#f1f5f9}
+
+  footer.landing-footer{
+    padding:0 20px 40px;text-align:center;color:var(--muted);font-size:12px;
+    line-height:1.65;max-width:520px;margin:0 auto;
+  }
+
   /* Header */
-  header{
+  header.app-header{
     background:linear-gradient(135deg,var(--primary),var(--primary-dark));
     color:#fff; padding:18px 16px; position:sticky; top:0; z-index:20;
     box-shadow:0 2px 10px rgba(0,0,0,.08);
   }
-  header .wrap{max-width:640px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
-  header h1{font-size:17px;font-weight:600}
-  header .sub{font-size:12px;opacity:.85}
-  header .avatar{
+  header.app-header .wrap{max-width:640px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+  header.app-header h1{font-size:17px;font-weight:600}
+  header.app-header .sub{font-size:12px;opacity:.85}
+  header.app-header .avatar{
     width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);
     display:grid;place-items:center;font-weight:700;font-size:14px;
   }
@@ -108,23 +212,28 @@
   .btn{
     width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;
     cursor:pointer;background:var(--primary);color:#fff;transition:background .15s;
+    font-family:inherit;
   }
   .btn:active{background:var(--primary-dark)}
   .btn.ghost{background:#fff;color:var(--text);border:1.5px solid var(--border)}
   .btn.danger{background:#fff;color:var(--danger);border:1.5px solid #fecaca}
+  .btn.link{
+    background:none;color:var(--primary);font-size:13px;padding:8px;
+    text-decoration:underline;width:auto;
+  }
 
   /* Nav */
-  nav{
+  nav.app-nav{
     position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);
     display:flex;z-index:30;padding-bottom:env(safe-area-inset-bottom);
   }
-  nav .inner{max-width:640px;margin:0 auto;width:100%;display:flex}
-  nav button{
+  nav.app-nav .inner{max-width:640px;margin:0 auto;width:100%;display:flex}
+  nav.app-nav button{
     flex:1;background:none;border:none;padding:9px 2px 7px;cursor:pointer;color:var(--muted);
     font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;
   }
-  nav button.active{color:var(--primary)}
-  nav .ico{font-size:19px}
+  nav.app-nav button.active{color:var(--primary)}
+  nav.app-nav .ico{font-size:19px}
 
   /* Lists */
   .list-item{
@@ -160,13 +269,14 @@
   .toast.success{background:var(--success)}
 
   /* Setup screen */
-  #setupScreen{max-width:480px;margin:0 auto;padding:30px 18px}
+  #setupScreen{max-width:480px;margin:0 auto;padding:24px 18px 60px}
   #setupScreen .logo{
     width:64px;height:64px;border-radius:18px;background:var(--primary);
     display:grid;place-items:center;font-size:30px;margin:20px auto 16px;color:#fff;
   }
   #setupScreen h2{text-align:center;font-size:21px;margin-bottom:6px}
   #setupScreen p.lead{text-align:center;color:var(--muted);font-size:14px;margin-bottom:24px}
+  #setupScreen .back-wrap{text-align:center;margin-top:14px}
 
   .section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px}
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
@@ -205,15 +315,138 @@
     background:#fff;color:var(--primary-dark);border:none;padding:8px 14px;border-radius:9px;
     font-size:12px;font-weight:700;cursor:pointer;
   }
+
+  /* Landing: tablet and up */
+  @media (min-width:700px){
+    .hero{padding:80px 20px 90px}
+    .hero h1{font-size:46px}
+    .hero .lede{font-size:18px;max-width:520px;margin-left:auto;margin-right:auto}
+    .hero-cta{flex-direction:row;justify-content:center}
+    .hero-cta .btn{width:auto;padding:15px 26px}
+    .features h2,.steps h2{font-size:26px}
+    .feature-grid{grid-template-columns:1fr 1fr}
+    .card-cta{padding:40px 30px}
+    .card-cta h3{font-size:24px}
+  }
+  @media (min-width:960px){
+    .feature-grid{grid-template-columns:1fr 1fr 1fr}
+  }
 </style>
 </head>
 <body>
 
+<!-- ================= LANDING ================= -->
+<div id="landingScreen">
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="brand">
+        <div class="brand-mark">📒</div>
+        <div class="brand-name">Momo Ledger</div>
+      </div>
+      <h1>Replace the paper book.</h1>
+      <p class="lede">
+        A fast, offline-first record book for mobile money agents.
+        Log every transaction, track your float per network, and know
+        your daily profit — right from your phone.
+      </p>
+      <div class="hero-cta">
+        <button class="btn" onclick="showSetup()">Get started — it's free</button>
+      </div>
+      <div class="hero-badges">
+        <span>⚡ Works offline</span>
+        <span>🔒 Data stays on your phone</span>
+        <span>📊 Daily reports</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="section-inner">
+      <h2>Everything the book does — but faster</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="f-ico">📝</div>
+          <h3>Log a transaction in seconds</h3>
+          <p>Deposit, withdrawal, airtime, or bill. Float balances update automatically.</p>
+        </div>
+        <div class="feature">
+          <div class="f-ico">💧</div>
+          <h3>Track float per network</h3>
+          <p>Cash on hand, MTN, Telecel, AirtelTigo — all in one view, always accurate.</p>
+        </div>
+        <div class="feature">
+          <div class="f-ico">👥</div>
+          <h3>Know your customers</h3>
+          <p>Names and numbers saved. Type a phone and the customer is instantly recognised.</p>
+        </div>
+        <div class="feature">
+          <div class="f-ico">📶</div>
+          <h3>Works without internet</h3>
+          <p>Everything saves on your device. No network? No problem.</p>
+        </div>
+        <div class="feature">
+          <div class="f-ico">💰</div>
+          <h3>Daily commission report</h3>
+          <p>See how much you made today — commission, fees, and transaction count.</p>
+        </div>
+        <div class="feature">
+          <div class="f-ico">📤</div>
+          <h3>Export to Excel anytime</h3>
+          <p>Download all transactions as a CSV for bookkeeping or sharing.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="steps">
+    <div class="section-inner">
+      <h2>How it works</h2>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Set up your starting float</h3>
+          <p>Enter your cash and e-money balances once. Takes under a minute.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Log every transaction</h3>
+          <p>Pick the network and type, enter amount and phone number. Save.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>See your day at a glance</h3>
+          <p>Commission earned, cash in/out, and current float — always up to date.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-final">
+    <div class="card-cta">
+      <h3>Ready to ditch the book?</h3>
+      <p>Free, offline, and made for agents. Set up in under a minute.</p>
+      <button class="btn" onclick="showSetup()">Get started</button>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <p>
+      Momo Ledger is a supplementary record-keeping tool.
+      It does not replace your official mobile money platform.
+      Always confirm transactions on the telco's system.
+    </p>
+  </footer>
+</div>
+
 <!-- ================= SETUP ================= -->
-<div id="setupScreen">
+<div id="setupScreen" hidden>
   <div class="logo">📒</div>
-  <h2>Momo Ledger</h2>
-  <p class="lead">Set up your account to start recording transactions</p>
+  <h2>Set up your ledger</h2>
+  <p class="lead">Takes under a minute. You can change these anytime.</p>
 
   <div class="card">
     <div class="field">
@@ -243,13 +476,17 @@
       <input id="setupAirtelTigo" inputmode="decimal" type="number" step="0.01" placeholder="0.00" />
     </div>
 
-    <button class="btn" onclick="completeSetup()">Get started</button>
+    <button class="btn" onclick="completeSetup()">Create my ledger</button>
+
+    <div class="back-wrap">
+      <button class="btn link" onclick="showLanding()">← Back to home</button>
+    </div>
   </div>
 </div>
 
 <!-- ================= MAIN APP ================= -->
 <div id="mainApp" hidden>
-  <header>
+  <header class="app-header">
     <div class="wrap">
       <div>
         <h1 id="headerName">Momo Ledger</h1>
@@ -485,7 +722,7 @@
 
   </div>
 
-  <nav>
+  <nav class="app-nav">
     <div class="inner">
       <button data-tab="dashboard" class="active"><span class="ico">🏠</span>Home</button>
       <button data-tab="new"><span class="ico">➕</span>New</button>
@@ -587,6 +824,40 @@ function toast(msg, type='info'){
   setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 2400);
 }
 
+/* ================= Screen switching ================= */
+function hideAllScreens(){
+  $('#landingScreen').hidden = true;
+  $('#setupScreen').hidden = true;
+  $('#mainApp').hidden = true;
+  document.body.classList.remove('app-mode');
+}
+
+function showLanding(){
+  hideAllScreens();
+  $('#landingScreen').hidden = false;
+  window.scrollTo({top:0});
+}
+
+function showSetup(){
+  hideAllScreens();
+  $('#setupScreen').hidden = false;
+  window.scrollTo({top:0});
+}
+
+function showApp(){
+  hideAllScreens();
+  $('#mainApp').hidden = false;
+  document.body.classList.add('app-mode');
+  applyAgentInfo();
+  renderAll();
+  window.scrollTo({top:0});
+}
+
+function startApp(){
+  if(db.agent) showApp();
+  else showLanding();
+}
+
 /* ================= Setup ================= */
 function completeSetup(){
   const name = $('#setupName').value.trim();
@@ -600,20 +871,8 @@ function completeSetup(){
   db.floats.eMoney.AirtelTigo = parseFloat($('#setupAirtelTigo').value) || 0;
 
   saveDB();
-  startApp();
+  showApp();
   toast('Welcome, ' + name.split(' ')[0] + '!', 'success');
-}
-
-function startApp(){
-  if(db.agent){
-    $('#setupScreen').hidden = true;
-    $('#mainApp').hidden = false;
-    applyAgentInfo();
-    renderAll();
-  } else {
-    $('#setupScreen').hidden = false;
-    $('#mainApp').hidden = true;
-  }
 }
 
 function applyAgentInfo(){
@@ -628,7 +887,7 @@ function switchTab(tab){
   $$('.tab').forEach(t => t.hidden = true);
   const el = $('#tab-' + tab);
   if(el) el.hidden = false;
-  $$('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  $$('nav.app-nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
 
   if(tab === 'dashboard') renderDashboard();
   if(tab === 'customers') renderCustomers();
@@ -675,12 +934,12 @@ function suggestFeeAndCommission(){
   const commissionRates = { deposit:0.5, withdrawal:1, airtime:5, bill:1 };
   const amount = parseFloat($('#txAmount').value) || 0;
   const fee = amount * (rates[selectedType]||0) / 100;
-  const comm = amount * (commissionRatesats[selectedType]||0) / .e100;
-  $('#txFee').value =Money fee ? fee.toFixed(2) : '0';
-.A  $('#txCommission').value = comm ? comm.toFixed(2irt) : '0';
+  const comm = amount * (commissionRates[selectedType]||0) / 100;
+  $('#txFee').value = fee ? fee.toFixed(2) : '0';
+  $('#txCommission').value = comm ? comm.toFixed(2) : '0';
 }
 
-elfunction prepareNewForm(){
+function prepareNewForm(){
   $('#txForm').reset();
   selectedNetwork = 'MTN';
   selectedType = 'deposit';
@@ -690,7 +949,6 @@ elfunction prepareNewForm(){
   $('#txCommission').value = '0';
 }
 
-// Auto-fill name when phone matches existing customer
 document.addEventListener('input', (e) => {
   if(e.target && e.target.id === 'txPhone'){
     const phone = e.target.value.trim();
@@ -773,7 +1031,7 @@ function renderDashboard(){
   $('#floatCash').textContent = money(db.floats.cash);
   $('#floatMTN').textContent = money(db.floats.eMoney.MTN);
   $('#floatTelecel').textContent = money(db.floats.eMoney.Telecel);
-  $('#floatAirtelTigo').textContent = money(db.floTigo);
+  $('#floatAirtelTigo').textContent = money(db.floats.eMoney.AirtelTigo);
 
   const recent = db.transactions.slice(-5).reverse();
   const box = $('#dashRecent');
@@ -973,13 +1231,10 @@ function initPWA(){
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').then((reg) => {
         swRegistration = reg;
-
-        // If there's already a waiting worker, show update banner
         if(reg.waiting){
           const ub = document.getElementById('updateBanner');
           if(ub) ub.hidden = false;
         }
-
         reg.addEventListener('updatefound', () => {
           const nw = reg.installing;
           if(!nw) return;
@@ -1005,7 +1260,7 @@ function initPWA(){
     deferredPrompt = e;
     if(!localStorage.getItem('installDismissed')){
       const b = document.getElementById('installBanner');
-      if(b) b.hidden = false;
+      if(b && !$('#mainApp').hidden) b.hidden = false;
     }
   });
 
@@ -1023,13 +1278,13 @@ document.addEventListener('DOMContentLoaded', () => {
   startApp();
   initPWA();
 
-  $$('nav button').forEach(b => {
+  $$('nav.app-nav button').forEach(b => {
     b.addEventListener('click', () => switchTab(b.dataset.tab));
   });
 
   $('#txAmount').addEventListener('input', suggestFeeAndCommission);
 
-  // Handle PWA shortcuts (?tab=new, ?tab=history)
+  // PWA shortcut params (?tab=new, ?tab=history)
   const params = new URLSearchParams(location.search);
   const shortcutTab = params.get('tab');
   if(shortcutTab && db.agent && document.getElementById('tab-' + shortcutTab)){
