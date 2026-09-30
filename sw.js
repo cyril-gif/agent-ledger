@@ -1,4 +1,4 @@
-const CACHE = 'momo-ledger-v1';
+const CACHE = 'momo-ledger-v2'; // bumped from v1
 const ASSETS = [
   './',
   './index.html',
@@ -42,4 +42,11 @@ self.addEventListener('fetch', (e) => {
         .catch(() => caches.match('./index.html'));
     })
   );
+});
+
+// 👇 this is the part that was missing
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
