@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Agent Ledger</title>
+<style>
+  :root{
+    --primary:#0f766e; --primary-dark:#115e59; --primary-light:#ccfbf1;
+    --accent:#f59e0b; --bg:#f1f5f9; --card:#ffffff;
+    --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+    --danger:#dc2626; --success:#16a34a; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text); font-size:15px; line-height:1.5;
+    padding-bottom:80px;
+  }
+  .app{max-width:640px;margin:0 auto;padding:0 14px}
+
+  /* Header */
+  header{
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    color:#fff; padding:18px 16px; position:sticky; top:0; z-index:20;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+  }
+  header .wrap{max-width:640px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+  header h1{font-size:17px;font-weight:600}
+  header .sub{font-size:12px;opacity:.85}
+  header .avatar{
+    width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);
+    display:grid;place-items:center;font-weight:700;font-size:14px;
+  }
+
+  /* Cards */
+  .card{
+    background:var(--card); border-radius:var(--radius); padding:16px;
+    box-shadow:0 1px 3px rgba(0,0,0,.05); margin-bottom:14px;
+    border:1px solid var(--border);
+  }
+  .card h2{font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+
+  /* Dashboard stats */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{background:var(--card);border-radius:var(--radius);padding:14px;border:1px solid var(--border)}
+  .stat .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .stat .value{font-size:19px;font-weight:700;margin-top:4px}
+  .stat.green .value{color:var(--success)}
+  .stat.red .value{color:var(--danger)}
+  .stat.blue .value{color:var(--primary)}
+
+  /* Floats */
+  .float-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+  .float-row:last-child{border-bottom:none}
+  .float-row .net{display:flex;align-items:center;gap:8px;font-weight:500}
+  .net-dot{width:9px;height:9px;border-radius:50%}
+  .dot-MTN{background:#ffcc00}
+  .dot-Telecel{background:#e30613}
+  .dot-AirtelTigo{background:#0057b8}
+  .float-row .amt{font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* Quick actions */
+  .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .quick button{
+    background:var(--primary-light);color:var(--primary-dark);border:none;
+    border-radius:12px;padding:12px 4px;font-size:11px;font-weight:600;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+  }
+  .quick button:active{transform:scale(.96)}
+  .quick .ico{font-size:18px}
+
+  /* Forms */
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#334155}
+  input,select{
+    width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;
+    font-size:15px;font-family:inherit;background:#fff;color:var(--text);outline:none;
+    transition:border-color .15s;
+  }
+  input:focus,select:focus{border-color:var(--primary)}
+  .field{margin-bottom:14px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  /* Toggle buttons */
+  .toggle{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .toggle.two{grid-template-columns:1fr 1fr}
+  .toggle button{
+    padding:11px 6px;border:1.5px solid var(--border);background:#fff;border-radius:10px;
+    font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s;
+  }
+  .toggle button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .toggle button:active{transform:scale(.97)}
+
+  /* Buttons */
+  .btn{
+    width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;
+    cursor:pointer;background:var(--primary);color:#fff;transition:background .15s;
+  }
+  .btn:active{background:var(--primary-dark)}
+  .btn.ghost{background:#fff;color:var(--text);border:1.5px solid var(--border)}
+  .btn.danger{background:#fff;color:var(--danger);border:1.5px solid #fecaca}
+
+  /* Nav */
+  nav{
+    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);
+    display:flex;z-index:30;padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav .inner{max-width:640px;margin:0 auto;width:100%;display:flex}
+  nav button{
+    flex:1;background:none;border:none;padding:9px 2px 7px;cursor:pointer;color:var(--muted);
+    font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  nav button.active{color:var(--primary)}
+  nav .ico{font-size:19px}
+
+  /* Lists */
+  .list-item{
+    display:flex;justify-content:space-between;align-items:center;padding:12px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .list-item:last-child{border-bottom:none}
+  .list-item .main{flex:1;min-width:0}
+  .list-item .title{font-weight:600;font-size:14px}
+  .list-item .meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .list-item .amt{font-weight:700;font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap;margin-left:10px}
+  .amt.pos{color:var(--success)}
+  .amt.neg{color:var(--danger)}
+  .tag{
+    display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;
+    background:var(--primary-light);color:var(--primary-dark);font-weight:700;margin-right:5px;
+  }
+  .day-header{
+    font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;padding:14px 0 6px;
+  }
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14px}
+
+  /* Toast */
+  .toast{
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:#0f172a;color:#fff;padding:11px 18px;border-radius:30px;font-size:13px;
+    font-weight:500;opacity:0;transition:all .3s;z-index:100;pointer-events:none;
+    max-width:90%;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.error{background:var(--danger)}
+  .toast.success{background:var(--success)}
+
+  /* Setup screen */
+  #setupScreen{max-width:480px;margin:0 auto;padding:30px 18px}
+  #setupScreen .logo{
+    width:64px;height:64px;border-radius:18px;background:var(--primary);
+    display:grid;place-items:center;font-size:30px;margin:20px auto 16px;color:#fff;
+  }
+  #setupScreen h2{text-align:center;font-size:21px;margin-bottom:6px}
+  #setupScreen p.lead{text-align:center;color:var(--muted);font-size:14px;margin-bottom:24px}
+
+  .section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .net-tag{font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;background:#f1f5f9;color:#334155}
+</style>
+</head>
+<body>
+
+<!-- ================= SETUP ================= -->
+<div id="setupScreen">
+  <div class="logo">📒</div>
+  <h2>Agent Ledger</h2>
+  <p class="lead">Set up your account to start recording transactions</p>
+
+  <div class="card">
+    <div class="field">
+      <label>Your name / business name</label>
+      <input id="setupName" placeholder="e.g. Kwame Mobile Money" />
+    </div>
+    <div class="field">
+      <label>Phone number</label>
+      <input id="setupPhone" inputmode="tel" placeholder="e.g. 024 000 0000" />
+    </div>
+
+    <div class="section-title">Starting balances (optional)</div>
+    <div class="field">
+      <label>Cash at hand</label>
+      <input id="setupCash" inputmode="decimal" type="number" step="0.01" placeholder="0.00" />
+    </div>
+    <div class="field">
+      <label>MTN e-money</label>
+      <input id="setupMTN" inputmode="decimal" type="number" step="0.01" placeholder="0.00" />
+    </div>
+    <div class="field">
+      <label>Telecel e-money</label>
+      <input id="setupTelecel" inputmode="decimal" type="number" step="0.01" placeholder="0.00" />
+    </div>
+    <div class="field">
+      <label>AirtelTigo e-money</label>
+      <input id="setupAirtelTigo" inputmode="decimal" type="number" step="0.01" placeholder="0.00" />
+    </div>
+
+    <button class="btn" onclick="completeSetup()">Get started</button>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="mainApp" hidden>
+  <header>
+    <div class="wrap">
+      <div>
+        <h1 id="headerName">Agent Ledger</h1>
+        <div class="sub" id="headerPhone"></div>
+      </div>
+      <div class="avatar" id="headerAvatar">A</div>
+    </div>
+  </header>
+
+  <div class="app">
+
+    <!-- Dashboard -->
+    <section id="tab-dashboard" class="tab">
+      <div style="height:16px"></div>
+      <div class="stats">
+        <div class="stat green">
+          <div class="label">Today's commission</div>
+          <div class="value" id="dashCommission">GHS 0.00</div>
+        </div>
+        <div class="stat blue">
+          <div class="label">Transactions today</div>
+          <div class="value" id="dashCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Cash in today</div>
+          <div class="value" id="dashIn">GHS 0.00</div>
+        </div>
+        <div class="stat">
+          <div class="label">Cash out today</div>
+          <div class="value" id="dashOut">GHS 0.00</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <h2>Quick actions</h2>
+        <div class="quick">
+          <button onclick="quickAction('deposit')"><span class="ico">💰</span>Deposit</button>
+          <button onclick="quickAction('withdrawal')"><span class="ico">🏧</span>Withdraw</button>
+          <button onclick="quickAction('airtime')"><span class="ico">📱</span>Airtime</button>
+          <button onclick="quickAction('bill')"><span class="ico">🧾</span>Bill</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Float balances</h2>
+        <div class="float-row">
+          <div class="net"><span class="net-dot" style="background:#16a34a"></span>Cash at hand</div>
+          <div class="amt" id="floatCash">GHS 0.00</div>
+        </div>
+        <div class="float-row">
+          <div class="net"><span class="net-dot dot-MTN"></span>MTN e-money</div>
+          <div class="amt" id="floatMTN">GHS 0.00</div>
+        </div>
+        <div class="float-row">
+          <div class="net"><span class="net-dot dot-Telecel"></span>Telecel e-money</div>
+          <div class="amt" id="floatTelecel">GHS 0.00</div>
+        </div>
+        <div class="float-row">
+          <div class="net"><span class="net-dot dot-AirtelTigo"></span>AirtelTigo e-money</div>
+          <div class="amt" id="floatAirtelTigo">GHS 0.00</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Recent activity</h2>
+        <div id="dashRecent"></div>
+      </div>
+    </section>
+
+    <!-- New transaction -->
+    <section id="tab-new" class="tab" hidden>
+      <div style="height:16px"></div>
+      <form id="txForm" class="card" onsubmit="saveTransaction(event)">
+        <h2>New transaction</h2>
+
+        <div class="field">
+          <label>Network</label>
+          <div class="toggle" id="networkToggle">
+            <button type="button" data-net="MTN" class="active">MTN</button>
+            <button type="button" data-net="Telecel">Telecel</button>
+            <button type="button" data-net="AirtelTigo">AirtelTigo</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Transaction type</label>
+          <div class="toggle two" id="typeToggle">
+            <button type="button" data-type="deposit" class="active">Deposit (Cash In)</button>
+            <button type="button" data-type="withdrawal">Withdrawal (Cash Out)</button>
+            <button type="button" data-type="airtime">Airtime</button>
+            <button type="button" data-type="bill">Bill Payment</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Customer phone</label>
+          <input id="txPhone" inputmode="tel" placeholder="e.g. 024 000 0000" required />
+        </div>
+
+        <div class="field">
+          <label>Customer name <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <input id="txName" placeholder="e.g. Ama Mensah" />
+        </div>
+
+        <div class="field">
+          <label>Amount</label>
+          <input id="txAmount" inputmode="decimal" type="number" step="0.01" min="0" placeholder="0.00" required />
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Fee charged</label>
+            <input id="txFee" inputmode="decimal" type="number" step="0.01" min="0" placeholder="0.00" value="0" />
+          </div>
+          <div class="field">
+            <label>Commission</label>
+            <input id="txCommission" inputmode="decimal" type="number" step="0.01" min="0" placeholder="0.00" value="0" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Note <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <input id="txNote" placeholder="e.g. sent to sister" />
+        </div>
+
+        <button type="submit" class="btn">Save transaction</button>
+        <p class="hint">Float balances update automatically. Fee and commission are recorded as income and don't affect floats.</p>
+      </form>
+    </section>
+
+    <!-- Customers -->
+    <section id="tab-customers" class="tab" hidden>
+      <div style="height:16px"></div>
+      <div class="card">
+        <h2>Customers</h2>
+        <input id="custSearch" placeholder="Search by name or phone..." oninput="renderCustomers()" />
+      </div>
+      <div class="card">
+        <div id="customerList"></div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section id="tab-history" class="tab" hidden>
+      <div style="height:16px"></div>
+      <div class="card">
+        <h2>Filter</h2>
+        <div class="field" style="margin-bottom:0">
+          <label>Date range</label>
+          <select id="histFilter" onchange="renderHistory()">
+            <option value="today">Today</option>
+            <option value="week">Last 7 days</option>
+            <option value="month">Last 30 days</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div id="historyList"></div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="tab-settings" class="tab" hidden>
+      <div style="height:16px"></div>
+      <div class="card">
+        <h2>Agent details</h2>
+        <div class="field">
+          <label>Name</label>
+          <input id="setName" />
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input id="setPhone" inputmode="tel" />
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Currency</label>
+          <input id="setCurrency" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Adjust float balances</h2>
+        <p class="hint" style="margin-top:-6px;margin-bottom:12px">Use this when you top up cash or e-money outside a customer transaction.</p>
+        <div class="field">
+          <label>Cash at hand</label>
+          <input id="setCash" inputmode="decimal" type="number" step="0.01" />
+        </div>
+        <div class="field">
+          <label>MTN e-money</label>
+          <input id="setMTN" inputmode="decimal" type="number" step="0.01" />
+        </div>
+        <div class="field">
+          <label>Telecel e-money</label>
+          <input id="setTelecel" inputmode="decimal" type="number" step="0.01" />
+        </div>
+        <div class="field">
+          <label>AirtelTigo e-money</label>
+          <input id="setAirtelTigo" inputmode="decimal" type="number" step="0.01" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Data</h2>
+        <div class="field">
+          <button class="btn ghost" onclick="saveSettings()">Save changes</button>
+        </div>
+        <div class="field">
+          <button class="btn ghost" onclick="exportCSV()">Export transactions (CSV)</button>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <button class="btn danger" onclick="resetAll()">Reset all data</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>About</h2>
+        <p style="font-size:13px;color:var(--muted)">
+          This ledger is a supplementary record-keeping tool. It does not replace your
+          official mobile money platform. Always confirm transactions on the telco's
+          system. No mobile money PINs should ever be entered here.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <nav>
+    <div class="inner">
+      <button data-tab="dashboard" class="active"><span class="ico">🏠</span>Home</button>
+      <button data-tab="new"><span class="ico">➕</span>New</button>
+      <button data-tab="customers"><span class="ico">👥</span>Customers</button>
+      <button data-tab="history"><span class="ico">📜</span>History</button>
+      <button data-tab="settings"><span class="ico">⚙️</span>Settings</button>
+    </div>
+  </nav>
+</div>
+
+<script>
+/* ================= Storage ================= */
+const STORE_KEY = 'agentLedger_v1';
+
+function defaultDB(){
+  return {
+    agent:null,
+    settings:{ currency:'GHS' },
+    customers:[],
+    transactions:[],
+    floats:{ cash:0, eMoney:{ MTN:0, Telecel:0, AirtelTigo:0 } }
+  };
+}
+
+let db = defaultDB();
+
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      db = Object.assign(defaultDB(), parsed);
+      db.floats = Object.assign({ cash:0, eMoney:{MTN:0,Telecel:0,AirtelTigo:0} }, db.floats || {});
+      db.floats.eMoney = Object.assign({MTN:0,Telecel:0,AirtelTigo:0}, db.floats.eMoney || {});
+    }
+  }catch(e){ console.warn('Load failed', e); }
+}
+
+function saveDB(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+  catch(e){ toast('Could not save data','error'); }
+}
+
+/* ================= Helpers ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+const money = n => (db.settings.currency || 'GHS') + ' ' + Number(n||0).toFixed(2);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+
+function formatDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined,{ weekday:'short', day:'numeric', month:'short' });
+}
+function formatTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleTimeString(undefined,{ hour:'2-digit', minute:'2-digit' });
+}
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function isToday(iso){ return todayKey() === (()=>{const d=new Date(iso);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();})(); }
+
+function toast(msg, type='info'){
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type==='error'?'error':type==='success'?'success':'');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 2400);
+}
+
+/* ================= Setup ================= */
+function completeSetup(){
+  const name = $('#setupName').value.trim();
+  const phone = $('#setupPhone').value.trim();
+  if(!name){ toast('Please enter your name','error'); return; }
+
+  db.agent = { name, phone, createdAt:new Date().toISOString() };
+  db.floats.cash = parseFloat($('#setupCash').value) || 0;
+  db.floats.eMoney.MTN = parseFloat($('#setupMTN').value) || 0;
+  db.floats.eMoney.Telecel = parseFloat($('#setupTelecel').value) || 0;
+  db.floats.eMoney.AirtelTigo = parseFloat($('#setupAirtelTigo').value) || 0;
+
+  saveDB();
+  startApp();
+  toast('Welcome, ' + name.split(' ')[0] + '!', 'success');
+}
+
+function startApp(){
+  if(db.agent){
+    $('#setupScreen').hidden = true;
+    $('#mainApp').hidden = false;
+    applyAgentInfo();
+    renderAll();
+  } else {
+    $('#setupScreen').hidden = false;
+    $('#mainApp').hidden = true;
+  }
+}
+
+function applyAgentInfo(){
+  if(!db.agent) return;
+  $('#headerName').textContent = db.agent.name;
+  $('#headerPhone').textContent = db.agent.phone || '';
+  $('#headerAvatar').textContent = (db.agent.name[0]||'A').toUpperCase();
+}
+
+/* ================= Tabs ================= */
+function switchTab(tab){
+  $$('.tab').forEach(t => t.hidden = true);
+  const el = $('#tab-' + tab);
+  if(el) el.hidden = false;
+  $$('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+
+  if(tab === 'dashboard') renderDashboard();
+  if(tab === 'customers') renderCustomers();
+  if(tab === 'history') renderHistory();
+  if(tab === 'settings') renderSettings();
+  if(tab === 'new') prepareNewForm();
+  window.scrollTo({top:0});
+}
+
+/* ================= Toggles for new transaction ================= */
+let selectedNetwork = 'MTN';
+let selectedType = 'deposit';
+
+function initToggles(){
+  $$('#networkToggle button').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('#networkToggle button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      selectedNetwork = b.dataset.net;
+    });
+  });
+  $$('#typeToggle button').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('#typeToggle button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      selectedType = b.dataset.type;
+      suggestFeeAndCommission();
+    });
+  });
+}
+
+function quickAction(type){
+  selectedType = type;
+  switchTab('new');
+  setTimeout(() => {
+    $$('#typeToggle button').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+    suggestFeeAndCommission();
+    $('#txPhone').focus();
+  }, 50);
+}
+
+function suggestFeeAndCommission(){
+  // Suggestion only — agent can override
+  const rates = { deposit:0, withdrawal:1, airtime:0, bill:0 };
+  const commissionRates = { deposit:0.5, withdrawal:1, airtime:5, bill:1 };
+  const amount = parseFloat($('#txAmount').value) || 0;
+  const fee = amount * (rates[selectedType]||0) / 100;
+  const comm = amount * (commissionRates[selectedType]||0) / 100;
+  $('#txFee').value = fee ? fee.toFixed(2) : '0';
+  $('#txCommission').value = comm ? comm.toFixed(2) : '0';
+}
+
+function prepareNewForm(){
+  // Reset
+  $('#txForm').reset();
+  selectedNetwork = 'MTN';
+  selectedType = 'deposit';
+  $$('#networkToggle button').forEach(b => b.classList.toggle('active', b.dataset.net === 'MTN'));
+  $$('#typeToggle button').forEach(b => b.classList.toggle('active', b.dataset.type === 'deposit'));
+  $('#txFee').value = '0';
+  $('#txCommission').value = '0';
+}
+
+// Auto-fill name when phone matches existing customer
+document.addEventListener('input', (e) => {
+  if(e.target && e.target.id === 'txPhone'){
+    const phone = e.target.value.trim();
+    const found = db.customers.find(c => c.phone === phone);
+    if(found && !$('#txName').value) $('#txName').value = found.name;
+  }
+});
+
+/* ================= Transactions ================= */
+function saveTransaction(ev){
+  ev.preventDefault();
+  const amount = parseFloat($('#txAmount').value);
+  const fee = parseFloat($('#txFee').value) || 0;
+  const commission = parseFloat($('#txCommission').value) || 0;
+  const phone = $('#txPhone').value.trim();
+  const name = $('#txName').value.trim() || 'Unknown';
+  const note = $('#txNote').value.trim();
+
+  if(!phone){ toast('Customer phone is required','error'); return; }
+  if(!amount || amount <= 0){ toast('Enter a valid amount','error'); return; }
+
+  // Float check
+  if(selectedType === 'deposit'){
+    if(db.floats.eMoney[selectedNetwork] < amount){
+      toast('Not enough ' + selectedNetwork + ' e-money', 'error'); return;
+    }
+  }
+  if(selectedType === 'withdrawal'){
+    if(db.floats.cash < amount){
+      toast('Not enough cash at hand', 'error'); return;
+    }
+  }
+
+  // Save/update customer
+  let customer = db.customers.find(c => c.phone === phone);
+  if(!customer){
+    customer = { id:uid(), name, phone, createdAt:new Date().toISOString() };
+    db.customers.push(customer);
+  } else if(name && name !== 'Unknown' && customer.name !== name){
+    customer.name = name;
+  }
+
+  // Apply float changes
+  if(selectedType === 'deposit' || selectedType === 'airtime' || selectedType === 'bill'){
+    db.floats.cash += amount;
+    db.floats.eMoney[selectedNetwork] -= amount;
+  } else if(selectedType === 'withdrawal'){
+    db.floats.cash -= amount;
+    db.floats.eMoney[selectedNetwork] += amount;
+  }
+
+  // Record transaction
+  const tx = {
+    id: uid(),
+    customerId: customer.id,
+    customerName: customer.name,
+    customerPhone: customer.phone,
+    network: selectedNetwork,
+    type: selectedType,
+    amount, fee, commission, note,
+    timestamp: new Date().toISOString()
+  };
+  db.transactions.push(tx);
+  saveDB();
+
+  toast('Transaction saved', 'success');
+  prepareNewForm();
+  switchTab('dashboard');
+}
+
+/* ================= Render: Dashboard ================= */
+function renderDashboard(){
+  const today = db.transactions.filter(t => isToday(t.timestamp));
+  const count = today.length;
+  const commission = today.reduce((s,t) => s + (t.commission||0), 0);
+  const cashIn = today.filter(t => t.type==='deposit').reduce((s,t) => s + t.amount, 0);
+  const cashOut = today.filter(t => t.type==='withdrawal').reduce((s,t) => s + t.amount, 0);
+
+  $('#dashCommission').textContent = money(commission);
+  $('#dashCount').textContent = count;
+  $('#dashIn').textContent = money(cashIn);
+  $('#dashOut').textContent = money(cashOut);
+
+  $('#floatCash').textContent = money(db.floats.cash);
+  $('#floatMTN').textContent = money(db.floats.eMoney.MTN);
+  $('#floatTelecel').textContent = money(db.floats.eMoney.Telecel);
+  $('#floatAirtelTigo').textContent = money(db.floats.eMoney.AirtelTigo);
+
+  const recent = db.transactions.slice(-5).reverse();
+  const box = $('#dashRecent');
+  if(!recent.length){
+    box.innerHTML = '<div class="empty">No transactions yet. Tap "New" to record one.</div>';
+  } else {
+    box.innerHTML = recent.map(txRow).join('');
+  }
+}
+
+function txRow(t){
+  const sign = (t.type === 'deposit' || t.type === 'airtime' || t.type === 'bill') ? '+' : '-';
+  const cls = sign === '+' ? 'pos' : 'neg';
+  const label = {
+    deposit:'Deposit', withdrawal:'Withdrawal', airtime:'Airtime', bill:'Bill'
+  }[t.type] || t.type;
+  return `
+    <div class="list-item">
+      <div class="main">
+        <div class="title">${escapeHtml(t.customerName)}</div>
+        <div class="meta">
+          <span class="tag">${escapeHtml(t.network)}</span>
+          ${label} • ${formatTime(t.timestamp)}
+        </div>
+      </div>
+      <div class="amt ${cls}">${sign}${money(t.amount).replace(db.settings.currency+' ','')}</div>
+    </div>
+  `;
+}
+
+/* ================= Render: Customers ================= */
+function renderCustomers(){
+  const q = ($('#custSearch').value || '').toLowerCase().trim();
+  let list = db.customers.slice().sort((a,b) => a.name.localeCompare(b.name));
+  if(q){
+    list = list.filter(c =>
+      c.name.toLowerCase().includes(q) || c.phone.includes(q)
+    );
+  }
+  const box = $('#customerList');
+  if(!list.length){
+    box.innerHTML = '<div class="empty">No customers yet.</div>';
+    return;
+  }
+  box.innerHTML = list.map(c => {
+    const txs = db.transactions.filter(t => t.customerId === c.id);
+    const total = txs.reduce((s,t) => s + t.amount, 0);
+    return `
+      <div class="list-item">
+        <div class="main">
+          <div class="title">${escapeHtml(c.name)}</div>
+          <div class="meta">${escapeHtml(c.phone)} • ${txs.length} transaction${txs.length===1?'':'s'}</div>
+        </div>
+        <div class="amt">${money(total)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ================= Render: History ================= */
+function renderHistory(){
+  const filter = $('#histFilter').value;
+  let txs = db.transactions.slice().reverse();
+
+  if(filter === 'today') txs = txs.filter(t => isToday(t.timestamp));
+  else if(filter === 'week'){
+    const cut = Date.now() - 7*24*60*60*1000;
+    txs = txs.filter(t => new Date(t.timestamp).getTime() >= cut);
+  } else if(filter === 'month'){
+    const cut = Date.now() - 30*24*60*60*1000;
+    txs = txs.filter(t => new Date(t.timestamp).getTime() >= cut);
+  }
+
+  const box = $('#historyList');
+  if(!txs.length){
+    box.innerHTML = '<div class="empty">No transactions in this period.</div>';
+    return;
+  }
+
+  // Group by day
+  const groups = {};
+  txs.forEach(t => {
+    const key = new Date(t.timestamp).toDateString();
+    (groups[key] = groups[key] || []).push(t);
+  });
+
+  box.innerHTML = Object.keys(groups).map(day => {
+    const items = groups[day];
+    const total = items.reduce((s,t) => s + t.amount, 0);
+    const comm = items.reduce((s,t) => s + (t.commission||0), 0);
+    return `
+      <div class="day-header">
+        ${formatDate(items[0].timestamp)} — ${money(total)} • comm ${money(comm)}
+      </div>
+      ${items.map(txRow).join('')}
+    `;
+  }).join('');
+}
+
+/* ================= Render: Settings ================= */
+function renderSettings(){
+  if(!db.agent) return;
+  $('#setName').value = db.agent.name;
+  $('#setPhone').value = db.agent.phone || '';
+  $('#setCurrency').value = db.settings.currency || 'GHS';
+  $('#setCash').value = db.floats.cash;
+  $('#setMTN').value = db.floats.eMoney.MTN;
+  $('#setTelecel').value = db.floats.eMoney.Telecel;
+  $('#setAirtelTigo').value = db.floats.eMoney.AirtelTigo;
+}
+
+function saveSettings(){
+  if(!db.agent) return;
+  db.agent.name = $('#setName').value.trim() || db.agent.name;
+  db.agent.phone = $('#setPhone').value.trim();
+  db.settings.currency = $('#setCurrency').value.trim() || 'GHS';
+  db.floats.cash = parseFloat($('#setCash').value) || 0;
+  db.floats.eMoney.MTN = parseFloat($('#setMTN').value) || 0;
+  db.floats.eMoney.Telecel = parseFloat($('#setTelecel').value) || 0;
+  db.floats.eMoney.AirtelTigo = parseFloat($('#setAirtelTigo').value) || 0;
+  saveDB();
+  applyAgentInfo();
+  toast('Settings saved', 'success');
+}
+
+/* ================= Export / Reset ================= */
+function exportCSV(){
+  if(!db.transactions.length){ toast('No transactions to export','error'); return; }
+  const head = ['Date','Time','Customer','Phone','Network','Type','Amount','Fee','Commission','Note'];
+  const rows = db.transactions.map(t => [
+    new Date(t.timestamp).toLocaleDateString(),
+    new Date(t.timestamp).toLocaleTimeString(),
+    t.customerName, t.customerPhone, t.network, t.type,
+    t.amount, t.fee||0, t.commission||0, t.note||''
+  ]);
+  const csv = [head, ...rows].map(r => r.map(v => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(',')).join('\n');
+
+  const blob = new Blob([csv], { type:'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'agent-ledger-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function resetAll(){
+  if(!confirm('This will delete ALL data on this device. Continue?')) return;
+  if(!confirm('Are you absolutely sure? This cannot be undone.')) return;
+  localStorage.removeItem(STORE_KEY);
+  location.reload();
+}
+
+/* ================= Render all ================= */
+function renderAll(){
+  renderDashboard();
+  renderCustomers();
+  renderHistory();
+  renderSettings();
+}
+
+/* ================= Init ================= */
+document.addEventListener('DOMContentLoaded', () => {
+  loadDB();
+  initToggles();
+  startApp();
+
+  // Nav
+  $$('nav button').forEach(b => {
+    b.addEventListener('click', () => switchTab(b.dataset.tab));
+  });
+
+  // Suggest fee/commission as amount changes
+  $('#txAmount').addEventListener('input', suggestFeeAndCommission);
+});
+</script>
+</body>
+</html>
