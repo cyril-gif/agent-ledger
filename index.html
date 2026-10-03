@@ -195,9 +195,7 @@
     transition:border-color .15s;
   }
   input:focus,select:focus{border-color:var(--primary)}
-  input[type="date"],input[type="time"]{
-    -webkit-appearance:none;appearance:none;
-  }
+  input[type="date"],input[type="time"]{-webkit-appearance:none;appearance:none}
   .field{margin-bottom:14px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
@@ -293,6 +291,35 @@
     font-size:12px;font-weight:600;margin-bottom:14px;
   }
   .date-chip .ico{font-size:14px}
+
+  /* Rate editor */
+  .rate-header{
+    display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;
+    font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.4px;padding-bottom:6px;border-bottom:1px solid var(--border);
+    margin-bottom:4px;
+  }
+  .rate-header .hdr-net{grid-column:1}
+  .rate-row{
+    display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;align-items:center;
+    padding:9px 0;border-bottom:1px solid var(--border);
+  }
+  .rate-row:last-child{border-bottom:none}
+  .rate-row .rate-label{font-size:13px;font-weight:600;color:#334155}
+  .rate-input-wrap{position:relative}
+  .rate-input-wrap input{
+    padding:9px 26px 9px 10px;font-size:14px;font-variant-numeric:tabular-nums;
+  }
+  .rate-input-wrap::after{
+    content:'%';position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    font-size:12px;color:var(--muted);pointer-events:none;
+  }
+  .rate-net-toggle{margin-bottom:16px}
+  .rate-live{
+    font-size:11px;color:var(--muted);padding:10px 0 0;
+    border-top:1px dashed var(--border);margin-top:8px;
+  }
+  .rate-live b{color:var(--primary-dark);font-variant-numeric:tabular-nums}
 
   /* Install banner */
   .install-banner{
@@ -393,9 +420,9 @@
           <p>Cash on hand, MTN, Telecel, AirtelTigo — all in one view, always accurate.</p>
         </div>
         <div class="feature">
-          <div class="f-ico">👥</div>
-          <h3>Know your customers</h3>
-          <p>Names and numbers saved. Type a phone and the customer is instantly recognised.</p>
+          <div class="f-ico">⚙️</div>
+          <h3>Your own commission rates</h3>
+          <p>Set fee and commission percentages per network. Auto-fills every new transaction.</p>
         </div>
         <div class="feature">
           <div class="f-ico">💰</div>
@@ -637,13 +664,15 @@
           </div>
         </div>
 
+        <p class="hint" id="rateHint" style="margin-top:-8px;margin-bottom:14px"></p>
+
         <div class="field">
           <label>Note <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
           <input id="txNote" placeholder="e.g. sent to sister" />
         </div>
 
         <button type="submit" class="btn">Save transaction</button>
-        <p class="hint">Float balances update automatically. Fee and commission are recorded as income and don't affect floats.</p>
+        <p class="hint">Fee and commission are auto-filled from your rates but you can override them.</p>
       </form>
     </section>
 
@@ -695,6 +724,36 @@
         <div class="field" style="margin-bottom:0">
           <label>Currency</label>
           <input id="setCurrency" />
+        </div>
+      </div>
+
+      <!-- NEW: Rates editor -->
+      <div class="card">
+        <h2>Fee &amp; commission rates</h2>
+        <p class="hint" style="margin-top:-6px;margin-bottom:12px">
+          Set your actual percentages per network. These auto-fill the fee and commission fields on every new transaction.
+        </p>
+
+        <div class="toggle rate-net-toggle" id="rateNetworkToggle">
+          <button type="button" data-net="MTN" class="active">MTN</button>
+          <button type="button" data-net="Telecel">Telecel</button>
+          <button type="button" data-net="AirtelTigo">AirtelTigo</button>
+        </div>
+
+        <div class="rate-header">
+          <div>Type</div>
+          <div>Fee&nbsp;%</div>
+          <div>Comm&nbsp;%</div>
+        </div>
+
+        <div id="rateEditor"></div>
+
+        <div class="rate-live" id="rateLive">
+          On a <b>GHS 100.00</b> withdrawal, you'd charge <b>GHS 0.00</b> and earn <b>GHS 0.00</b>.
+        </div>
+
+        <div style="margin-top:14px">
+          <button class="btn" onclick="saveRates()">Save rates</button>
         </div>
       </div>
 
@@ -766,7 +825,6 @@
     </div>
   </nav>
 
-  <!-- Install banner -->
   <div id="installBanner" class="install-banner" hidden>
     <div class="ib-info">
       <div class="ib-title">Install Momo Ledger</div>
@@ -776,7 +834,6 @@
     <button class="ib-x" onclick="dismissInstall()">✕</button>
   </div>
 
-  <!-- Update banner -->
   <div id="updateBanner" class="update-banner" hidden>
     <div class="ib-info">
       <div class="ib-title">New version available</div>
@@ -790,17 +847,57 @@
 /* ================= Storage ================= */
 const STORE_KEY = 'agentLedger_v1';
 
+const NETWORKS = ['MTN', 'Telecel', 'AirtelTigo'];
+const TX_TYPES = [
+  { key:'deposit',    label:'Deposit' },
+  { key:'withdrawal', label:'Withdrawal' },
+  { key:'airtime',    label:'Airtime' },
+  { key:'bill',       label:'Bill Payment' }
+];
+
+// Default rates are just a starting point — user overrides them in Settings
+function defaultRates(){
+  const out = {};
+  NETWORKS.forEach(net => {
+    out[net] = {
+      deposit:    { fee: 0, commission: 0.5 },
+      withdrawal: { fee: 1, commission: 1.0 },
+      airtime:    { fee: 0, commission: 5.0 },
+      bill:       { fee: 0, commission: 1.0 }
+    };
+  });
+  return out;
+}
+
 function defaultDB(){
   return {
     agent:null,
     settings:{ currency:'GHS' },
     customers:[],
     transactions:[],
-    floats:{ cash:0, eMoney:{ MTN:0, Telecel:0, AirtelTigo:0 } }
+    floats:{ cash:0, eMoney:{ MTN:0, Telecel:0, AirtelTigo:0 } },
+    rates: defaultRates()
   };
 }
 
 let db = defaultDB();
+
+// Deep-merge rates so saved data survives new networks/types being added
+function mergeRates(defaults, saved){
+  const out = {};
+  NETWORKS.forEach(net => {
+    out[net] = {};
+    TX_TYPES.forEach(t => {
+      const d = defaults[net][t.key];
+      const s = (saved && saved[net] && saved[net][t.key]) || {};
+      out[net][t.key] = {
+        fee: (typeof s.fee === 'number') ? s.fee : d.fee,
+        commission: (typeof s.commission === 'number') ? s.commission : d.commission
+      };
+    });
+  });
+  return out;
+}
 
 function loadDB(){
   try{
@@ -810,6 +907,7 @@ function loadDB(){
       db = Object.assign(defaultDB(), parsed);
       db.floats = Object.assign({ cash:0, eMoney:{MTN:0,Telecel:0,AirtelTigo:0} }, db.floats || {});
       db.floats.eMoney = Object.assign({MTN:0,Telecel:0,AirtelTigo:0}, db.floats.eMoney || {});
+      db.rates = mergeRates(defaultRates(), parsed.rates);
     }
   }catch(e){ console.warn('Load failed', e); }
 }
@@ -842,13 +940,10 @@ function nowTimeStr(){
   const d = new Date();
   return pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
-
 function dateKeyFromDate(d){
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 }
-function todayKey(){
-  return dateKeyFromDate(new Date());
-}
+function todayKey(){ return dateKeyFromDate(new Date()); }
 
 function formatDate(iso){
   const d = new Date(iso);
@@ -875,14 +970,17 @@ function relativeDayLabel(ymd){
   if(!ymd) return '';
   const today = todayKey();
   if(ymd === today) return 'Today';
-
   const y = new Date();
   y.setDate(y.getDate() - 1);
-  const yesterdayKey = dateKeyFromDate(y);
-  if(ymd === yesterdayKey) return 'Yesterday';
-
+  if(ymd === dateKeyFromDate(y)) return 'Yesterday';
   const d = new Date(ymd + 'T00:00:00');
   return d.toLocaleDateString(undefined,{ weekday:'long', day:'numeric', month:'short', year:'numeric' });
+}
+
+function getRate(network, type){
+  const r = db.rates && db.rates[network] && db.rates[network][type];
+  if(r) return r;
+  return { fee: 0, commission: 0 };
 }
 
 /* ================= Screen switching ================= */
@@ -892,19 +990,16 @@ function hideAllScreens(){
   $('#mainApp').hidden = true;
   document.body.classList.remove('app-mode');
 }
-
 function showLanding(){
   hideAllScreens();
   $('#landingScreen').hidden = false;
   window.scrollTo({top:0});
 }
-
 function showSetup(){
   hideAllScreens();
   $('#setupScreen').hidden = false;
   window.scrollTo({top:0});
 }
-
 function showApp(){
   hideAllScreens();
   $('#mainApp').hidden = false;
@@ -913,10 +1008,8 @@ function showApp(){
   renderAll();
   window.scrollTo({top:0});
 }
-
 function startApp(){
-  if(db.agent) showApp();
-  else showLanding();
+  if(db.agent) showApp(); else showLanding();
 }
 
 /* ================= Setup ================= */
@@ -968,6 +1061,7 @@ function initToggles(){
       $$('#networkToggle button').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
       selectedNetwork = b.dataset.net;
+      suggestFeeAndCommission();
     });
   });
   $$('#typeToggle button').forEach(b => {
@@ -990,14 +1084,21 @@ function quickAction(type){
   }, 50);
 }
 
+// Look up the configured rates for the selected network + type
 function suggestFeeAndCommission(){
-  const rates = { deposit:0, withdrawal:1, airtime:0, bill:0 };
-  const commissionRates = { deposit:0.5, withdrawal:1, airtime:5, bill:1 };
+  const rate = getRate(selectedNetwork, selectedType);
   const amount = parseFloat($('#txAmount').value) || 0;
-  const fee = amount * (rates[selectedType]||0) / 100;
-  const comm = amount * (commissionRates[selectedType]||0) / 100;
+  const fee = amount * (rate.fee || 0) / 100;
+  const comm = amount * (rate.commission || 0) / 100;
+
   $('#txFee').value = fee ? fee.toFixed(2) : '0';
   $('#txCommission').value = comm ? comm.toFixed(2) : '0';
+
+  const hint = $('#rateHint');
+  if(hint){
+    hint.textContent = 'Using your ' + selectedNetwork + ' ' + (selectedType) + ' rate: '
+      + rate.fee + '% fee · ' + rate.commission + '% commission';
+  }
 }
 
 function prepareNewForm(){
@@ -1012,6 +1113,7 @@ function prepareNewForm(){
   $('#txDate').value = nowDateStr();
   $('#txTime').value = nowTimeStr();
   updateDateChip();
+  suggestFeeAndCommission();
 }
 
 function updateDateChip(){
@@ -1021,17 +1123,14 @@ function updateDateChip(){
   const ymd = $('#txDate').value;
   if(!ymd){ txt.textContent = 'No date selected'; return; }
 
-  const isTodayVal = ymd === todayKey();
-  const label = relativeDayLabel(ymd);
-
-  if(isTodayVal){
+  if(ymd === todayKey()){
     chip.style.background = 'var(--primary-light)';
     chip.style.color = 'var(--primary-dark)';
     txt.textContent = 'Today (' + ymd + ')';
   } else {
     chip.style.background = '#fef3c7';
     chip.style.color = '#92400e';
-    txt.textContent = label;
+    txt.textContent = relativeDayLabel(ymd);
   }
 }
 
@@ -1249,6 +1348,91 @@ function renderHistory(){
   }).join('');
 }
 
+/* ================= Rates editor ================= */
+let editingRateNetwork = 'MTN';
+
+function initRateToggle(){
+  const wrap = $('#rateNetworkToggle');
+  if(!wrap) return;
+  $$('#rateNetworkToggle button').forEach(b => {
+    b.addEventListener('click', () => {
+      $$('#rateNetworkToggle button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      editingRateNetwork = b.dataset.net;
+      renderRateEditor();
+    });
+  });
+}
+
+function renderRateEditor(){
+  const box = $('#rateEditor');
+  if(!box) return;
+  const net = editingRateNetwork;
+  const rates = db.rates[net] || {};
+
+  box.innerHTML = TX_TYPES.map(t => {
+    const r = rates[t.key] || { fee:0, commission:0 };
+    return `
+      <div class="rate-row">
+        <div class="rate-label">${escapeHtml(t.label)}</div>
+        <div class="rate-input-wrap">
+          <input type="number" step="0.01" min="0"
+            data-net="${net}" data-type="${t.key}" data-field="fee"
+            value="${r.fee}" oninput="onRateInput()" />
+        </div>
+        <div class="rate-input-wrap">
+          <input type="number" step="0.01" min="0"
+            data-net="${net}" data-type="${t.key}" data-field="commission"
+            value="${r.commission}" oninput="onRateInput()" />
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  updateRateLive();
+}
+
+function onRateInput(){
+  // Live preview using withdrawal as the sample
+  updateRateLive();
+}
+
+function readRatesFromInputs(){
+  // Returns { MTN: { deposit: {fee,commission}, ... }, ... } merged into current db.rates
+  const updated = mergeRates(defaultRates(), db.rates);
+  const inputs = $$('#rateEditor input[data-net]');
+  inputs.forEach(inp => {
+    const net = inp.dataset.net;
+    const type = inp.dataset.type;
+    const field = inp.dataset.field;
+    const v = parseFloat(inp.value);
+    updated[net][type][field] = isNaN(v) ? 0 : v;
+  });
+  return updated;
+}
+
+function updateRateLive(){
+  const preview = readRatesFromInputs();
+  const r = preview[editingRateNetwork].withdrawal;
+  const sample = 100;
+  const fee = sample * (r.fee||0) / 100;
+  const comm = sample * (r.commission||0) / 100;
+  const el = $('#rateLive');
+  if(el){
+    el.innerHTML = 'On a <b>' + money(sample) + '</b> withdrawal on '
+      + editingRateNetwork + ', you\'d charge <b>' + money(fee)
+      + '</b> and earn <b>' + money(comm) + '</b>.';
+  }
+}
+
+function saveRates(){
+  db.rates = readRatesFromInputs();
+  saveDB();
+  // Recompute the preview on the new-transaction form for the currently selected network/type
+  if($('#txAmount')) suggestFeeAndCommission();
+  toast('Rates saved', 'success');
+}
+
 /* ================= Render: Settings ================= */
 function renderSettings(){
   if(!db.agent) return;
@@ -1259,6 +1443,12 @@ function renderSettings(){
   $('#setMTN').value = db.floats.eMoney.MTN;
   $('#setTelecel').value = db.floats.eMoney.Telecel;
   $('#setAirtelTigo').value = db.floats.eMoney.AirtelTigo;
+
+  // Sync the rate toggle button state with our remembered network
+  $$('#rateNetworkToggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.net === editingRateNetwork);
+  });
+  renderRateEditor();
 }
 
 function saveSettings(){
@@ -1346,34 +1536,27 @@ function showUpdateBanner(){
   const ub = document.getElementById('updateBanner');
   if(ub) ub.hidden = false;
 }
-
 function hideUpdateBanner(){
   const ub = document.getElementById('updateBanner');
   if(ub) ub.hidden = true;
 }
 
-/* Robust update: tries waiting worker, then installing worker, then hard reload */
 function applyUpdate(){
   hideUpdateBanner();
 
   if(swRegistration && swRegistration.waiting){
     swRegistration.waiting.postMessage({ type:'SKIP_WAITING' });
-    // Safety net if controllerchange doesn't fire
     setTimeout(() => { window.location.reload(); }, 1500);
     return;
   }
-
   if(swRegistration && swRegistration.installing){
     swRegistration.installing.postMessage({ type:'SKIP_WAITING' });
     setTimeout(() => { window.location.reload(); }, 1500);
     return;
   }
-
-  // Nothing waiting — force a network-first reload
   window.location.reload();
 }
 
-/* Manual check for updates (Settings button) */
 function checkForUpdates(showFeedback){
   if(!('serviceWorker' in navigator) || !swRegistration){
     if(showFeedback) toast('Updates not supported in this browser', 'error');
@@ -1397,9 +1580,7 @@ function initPWA(){
       navigator.serviceWorker.register('sw.js').then((reg) => {
         swRegistration = reg;
 
-        if(reg.waiting){
-          showUpdateBanner();
-        }
+        if(reg.waiting) showUpdateBanner();
 
         reg.addEventListener('updatefound', () => {
           const nw = reg.installing;
@@ -1411,10 +1592,7 @@ function initPWA(){
           });
         });
 
-        // Periodically check for updates every hour while app is open
-        setInterval(() => {
-          reg.update().catch(() => {});
-        }, 60 * 60 * 1000);
+        setInterval(() => { reg.update().catch(() => {}); }, 60 * 60 * 1000);
       }).catch(err => console.warn('SW failed:', err));
 
       navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -1445,6 +1623,7 @@ function initPWA(){
 document.addEventListener('DOMContentLoaded', () => {
   loadDB();
   initToggles();
+  initRateToggle();
   startApp();
   initPWA();
 
