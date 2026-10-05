@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
 <title>Momo Ledger — The book, done right</title>
 
-<!-- PWA -->
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#0f766e" />
 <meta name="description" content="Offline-first ledger for mobile money agents. Log transactions, track float, know your daily profit." />
@@ -238,7 +237,7 @@
 
   /* Lists */
   .list-item{
-    display:flex;justify-content:space-between;align-items:center;padding:12px 0;
+    display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;
     border-bottom:1px solid var(--border);
   }
   .list-item:last-child{border-bottom:none}
@@ -252,8 +251,47 @@
     display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;
     background:var(--primary-light);color:var(--primary-dark);font-weight:700;margin-right:5px;
   }
-  .tag.date-tag{background:#e2e8f0;color:#334155}
   .tag.past-tag{background:#fef3c7;color:#92400e}
+
+  /* Float impact line under each transaction */
+  .float-impact{
+    font-size:11px;margin-top:5px;color:var(--muted);
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  }
+  .float-impact .fx-chip{
+    display:inline-flex;align-items:center;gap:3px;
+    padding:2px 7px;border-radius:6px;font-weight:600;
+    font-variant-numeric:tabular-nums;
+  }
+  .fx-chip.up{background:#dcfce7;color:#166534}
+  .fx-chip.down{background:#fee2e2;color:#991b1b}
+
+  /* Float preview on transaction form */
+  .float-preview{
+    background:#f8fafc;border:1px dashed var(--border);border-radius:10px;
+    padding:12px;margin-bottom:14px;
+  }
+  .float-preview .fp-title{
+    font-size:11px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;
+  }
+  .fp-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:4px 0;font-size:13px;
+  }
+  .fp-row .fp-label{color:#334155;font-weight:500}
+  .fp-row .fp-values{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+  .fp-row .fp-from{color:var(--muted)}
+  .fp-row .fp-arrow{color:var(--muted);font-size:11px}
+  .fp-row .fp-to{font-weight:700}
+  .fp-row .fp-to.up{color:var(--success)}
+  .fp-row .fp-to.down{color:var(--danger)}
+  .fp-delta{
+    font-size:11px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px;
+  }
+  .fp-delta.up{background:#dcfce7;color:#166534}
+  .fp-delta.down{background:#fee2e2;color:#991b1b}
+
   .day-header{
     font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;
     letter-spacing:.5px;padding:14px 0 6px;
@@ -284,7 +322,6 @@
   .section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px}
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
 
-  /* Date chip */
   .date-chip{
     display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;
     background:var(--primary-light);color:var(--primary-dark);
@@ -299,7 +336,6 @@
     letter-spacing:.4px;padding-bottom:6px;border-bottom:1px solid var(--border);
     margin-bottom:4px;
   }
-  .rate-header .hdr-net{grid-column:1}
   .rate-row{
     display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;align-items:center;
     padding:9px 0;border-bottom:1px solid var(--border);
@@ -340,7 +376,6 @@
     background:transparent;color:#94a3b8;padding:8px;font-size:14px;
   }
 
-  /* Update prompt */
   .update-banner{
     position:fixed;left:50%;bottom:86px;transform:translateX(-50%);
     background:var(--primary-dark);color:#fff;border-radius:14px;padding:12px 14px;
@@ -356,7 +391,6 @@
     font-size:12px;font-weight:700;cursor:pointer;
   }
 
-  /* Landing: tablet and up */
   @media (min-width:700px){
     .hero{padding:80px 20px 90px}
     .hero h1{font-size:46px}
@@ -621,7 +655,12 @@
           </div>
         </div>
 
-        <!-- DATE + TIME -->
+        <!-- FLOAT IMPACT PREVIEW (updates live) -->
+        <div class="float-preview" id="floatPreview">
+          <div class="fp-title">Float impact preview</div>
+          <div id="floatPreviewBody"></div>
+        </div>
+
         <div class="field">
           <label>Date of transaction</label>
           <div class="row">
@@ -727,7 +766,6 @@
         </div>
       </div>
 
-      <!-- NEW: Rates editor -->
       <div class="card">
         <h2>Fee &amp; commission rates</h2>
         <p class="hint" style="margin-top:-6px;margin-bottom:12px">
@@ -748,9 +786,7 @@
 
         <div id="rateEditor"></div>
 
-        <div class="rate-live" id="rateLive">
-          On a <b>GHS 100.00</b> withdrawal, you'd charge <b>GHS 0.00</b> and earn <b>GHS 0.00</b>.
-        </div>
+        <div class="rate-live" id="rateLive"></div>
 
         <div style="margin-top:14px">
           <button class="btn" onclick="saveRates()">Save rates</button>
@@ -855,7 +891,6 @@ const TX_TYPES = [
   { key:'bill',       label:'Bill Payment' }
 ];
 
-// Default rates are just a starting point — user overrides them in Settings
 function defaultRates(){
   const out = {};
   NETWORKS.forEach(net => {
@@ -882,7 +917,6 @@ function defaultDB(){
 
 let db = defaultDB();
 
-// Deep-merge rates so saved data survives new networks/types being added
 function mergeRates(defaults, saved){
   const out = {};
   NETWORKS.forEach(net => {
@@ -981,6 +1015,37 @@ function getRate(network, type){
   const r = db.rates && db.rates[network] && db.rates[network][type];
   if(r) return r;
   return { fee: 0, commission: 0 };
+}
+
+/* =========================================================
+   FLOAT DIRECTION — single source of truth
+   =========================================================
+
+   DEPOSIT (Cash In):     customer hands you CASH, you send E-MONEY
+       → cash +amount       (your physical cash increases)
+       → eMoney −amount     (your e-money balance drops)
+
+   WITHDRAWAL (Cash Out): customer sends you E-MONEY, you hand CASH
+       → cash −amount       (you give out physical cash)
+       → eMoney +amount     (customer's e-money lands in your float)
+
+   AIRTIME:  same as deposit  → cash +, eMoney −
+   BILL:     same as deposit  → cash +, eMoney −
+
+   ========================================================= */
+function getFloatDeltas(type, amount){
+  const amt = Number(amount) || 0;
+  if(type === 'withdrawal'){
+    return { cash: -amt, eMoney: +amt, direction: 'cash-out' };
+  }
+  // deposit, airtime, bill
+  return { cash: +amt, eMoney: -amt, direction: 'cash-in' };
+}
+
+function applyFloatDeltas(type, network, amount){
+  const d = getFloatDeltas(type, amount);
+  db.floats.cash += d.cash;
+  db.floats.eMoney[network] += d.eMoney;
 }
 
 /* ================= Screen switching ================= */
@@ -1084,7 +1149,7 @@ function quickAction(type){
   }, 50);
 }
 
-// Look up the configured rates for the selected network + type
+// Look up configured rates + refresh the live float preview
 function suggestFeeAndCommission(){
   const rate = getRate(selectedNetwork, selectedType);
   const amount = parseFloat($('#txAmount').value) || 0;
@@ -1096,9 +1161,61 @@ function suggestFeeAndCommission(){
 
   const hint = $('#rateHint');
   if(hint){
-    hint.textContent = 'Using your ' + selectedNetwork + ' ' + (selectedType) + ' rate: '
+    hint.textContent = 'Using your ' + selectedNetwork + ' ' + selectedType + ' rate: '
       + rate.fee + '% fee · ' + rate.commission + '% commission';
   }
+
+  updateFloatPreview();
+}
+
+// Live preview of how floats will change
+function updateFloatPreview(){
+  const box = $('#floatPreviewBody');
+  if(!box) return;
+
+  const amount = parseFloat($('#txAmount').value) || 0;
+  const net = selectedNetwork;
+  const type = selectedType;
+
+  const cashBefore = db.floats.cash;
+  const emBefore = db.floats.eMoney[net];
+
+  const d = getFloatDeltas(type, amount);
+  const cashAfter = cashBefore + d.cash;
+  const emAfter = emBefore + d.eMoney;
+
+  const fmt = n => Number(n).toFixed(2);
+  const cls = v => v > 0 ? 'up' : (v < 0 ? 'down' : '');
+  const sign = v => v > 0 ? '+' : (v < 0 ? '−' : '');
+
+  const label = {
+    deposit:'Deposit', withdrawal:'Withdrawal',
+    airtime:'Airtime', bill:'Bill Payment'
+  }[type] || type;
+
+  box.innerHTML = `
+    <div class="fp-row">
+      <span class="fp-label">Cash at hand</span>
+      <span class="fp-values">
+        <span class="fp-from">${fmt(cashBefore)}</span>
+        <span class="fp-arrow">→</span>
+        <span class="fp-to ${cls(d.cash)}">${fmt(cashAfter)}</span>
+        <span class="fp-delta ${cls(d.cash)}">${sign(d.cash)}${fmt(Math.abs(d.cash))}</span>
+      </span>
+    </div>
+    <div class="fp-row">
+      <span class="fp-label">${escapeHtml(net)} e-money</span>
+      <span class="fp-values">
+        <span class="fp-from">${fmt(emBefore)}</span>
+        <span class="fp-arrow">→</span>
+        <span class="fp-to ${cls(d.eMoney)}">${fmt(emAfter)}</span>
+        <span class="fp-delta ${cls(d.eMoney)}">${sign(d.eMoney)}${fmt(Math.abs(d.eMoney))}</span>
+      </span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">
+      ${escapeHtml(label)} of ${money(amount)} on ${escapeHtml(net)}.
+    </div>
+  `;
 }
 
 function prepareNewForm(){
@@ -1167,17 +1284,16 @@ function saveTransaction(ev){
   const localDate = new Date(dateVal + 'T' + timeVal + ':00');
   if(isNaN(localDate.getTime())){ toast('Invalid date/time','error'); return; }
 
-  if(selectedType === 'deposit'){
-    if(db.floats.eMoney[selectedNetwork] < amount){
-      toast('Not enough ' + selectedNetwork + ' e-money', 'error'); return;
-    }
+  // Float checks
+  if(selectedType === 'withdrawal' && db.floats.cash < amount){
+    toast('Not enough cash at hand for this withdrawal', 'error'); return;
   }
-  if(selectedType === 'withdrawal'){
-    if(db.floats.cash < amount){
-      toast('Not enough cash at hand', 'error'); return;
-    }
+  if((selectedType === 'deposit' || selectedType === 'airtime' || selectedType === 'bill')
+      && db.floats.eMoney[selectedNetwork] < amount){
+    toast('Not enough ' + selectedNetwork + ' e-money', 'error'); return;
   }
 
+  // Customer record
   let customer = db.customers.find(c => c.phone === phone);
   if(!customer){
     customer = { id:uid(), name, phone, createdAt:new Date().toISOString() };
@@ -1186,13 +1302,8 @@ function saveTransaction(ev){
     customer.name = name;
   }
 
-  if(selectedType === 'deposit' || selectedType === 'airtime' || selectedType === 'bill'){
-    db.floats.cash += amount;
-    db.floats.eMoney[selectedNetwork] -= amount;
-  } else if(selectedType === 'withdrawal'){
-    db.floats.cash -= amount;
-    db.floats.eMoney[selectedNetwork] += amount;
-  }
+  // Apply float changes (single source of truth)
+  applyFloatDeltas(selectedType, selectedNetwork, amount);
 
   const tx = {
     id: uid(),
@@ -1209,8 +1320,14 @@ function saveTransaction(ev){
   db.transactions.push(tx);
   saveDB();
 
-  const wasBackdated = dateVal !== todayKey();
-  toast(wasBackdated ? 'Backdated transaction saved' : 'Transaction saved', 'success');
+  // Confirm with a toast that says exactly what changed
+  const d = getFloatDeltas(selectedType, amount);
+  const sgn = v => v > 0 ? '+' : '−';
+  const confirmMsg = selectedType === 'withdrawal'
+    ? 'Withdrawal saved: cash ' + sgn(d.cash) + amount.toFixed(2) + ', ' + selectedNetwork + ' e-money ' + sgn(d.eMoney) + amount.toFixed(2)
+    : 'Transaction saved: cash ' + sgn(d.cash) + amount.toFixed(2) + ', ' + selectedNetwork + ' e-money ' + sgn(d.eMoney) + amount.toFixed(2);
+  toast(confirmMsg, 'success');
+
   prepareNewForm();
   switchTab('dashboard');
 }
@@ -1246,8 +1363,7 @@ function renderDashboard(){
 }
 
 function txRow(t){
-  const sign = (t.type === 'deposit' || t.type === 'airtime' || t.type === 'bill') ? '+' : '-';
-  const cls = sign === '+' ? 'pos' : 'neg';
+  const d = getFloatDeltas(t.type, t.amount);
   const label = {
     deposit:'Deposit', withdrawal:'Withdrawal', airtime:'Airtime', bill:'Bill'
   }[t.type] || t.type;
@@ -1257,6 +1373,16 @@ function txRow(t){
     ? `<span class="tag past-tag">📅 ${escapeHtml(relativeDayLabel(t.date))}</span>`
     : '';
 
+  // Main amount shows CASH direction (deposits bring cash in, withdrawals send cash out)
+  const cashUp = d.cash > 0;
+  const mainSign = cashUp ? '+' : '−';
+  const mainCls = cashUp ? 'pos' : 'neg';
+
+  const cashChip = d.cash === 0 ? '' :
+    `<span class="fx-chip ${d.cash > 0 ? 'up' : 'down'}">Cash ${d.cash > 0 ? '+' : '−'}${Math.abs(d.cash).toFixed(2)}</span>`;
+  const emChip = d.eMoney === 0 ? '' :
+    `<span class="fx-chip ${d.eMoney > 0 ? 'up' : 'down'}">${escapeHtml(t.network)} ${d.eMoney > 0 ? '+' : '−'}${Math.abs(d.eMoney).toFixed(2)}</span>`;
+
   return `
     <div class="list-item">
       <div class="main">
@@ -1265,8 +1391,9 @@ function txRow(t){
           ${dateTag}<span class="tag">${escapeHtml(t.network)}</span>
           ${label} • ${formatTime(t.timestamp)}
         </div>
+        <div class="float-impact">${cashChip}${emChip}</div>
       </div>
-      <div class="amt ${cls}">${sign}${money(t.amount).replace(db.settings.currency+' ','')}</div>
+      <div class="amt ${mainCls}">${mainSign}${money(t.amount).replace(db.settings.currency+' ','')}</div>
     </div>
   `;
 }
@@ -1392,13 +1519,9 @@ function renderRateEditor(){
   updateRateLive();
 }
 
-function onRateInput(){
-  // Live preview using withdrawal as the sample
-  updateRateLive();
-}
+function onRateInput(){ updateRateLive(); }
 
 function readRatesFromInputs(){
-  // Returns { MTN: { deposit: {fee,commission}, ... }, ... } merged into current db.rates
   const updated = mergeRates(defaultRates(), db.rates);
   const inputs = $$('#rateEditor input[data-net]');
   inputs.forEach(inp => {
@@ -1428,7 +1551,6 @@ function updateRateLive(){
 function saveRates(){
   db.rates = readRatesFromInputs();
   saveDB();
-  // Recompute the preview on the new-transaction form for the currently selected network/type
   if($('#txAmount')) suggestFeeAndCommission();
   toast('Rates saved', 'success');
 }
@@ -1444,7 +1566,6 @@ function renderSettings(){
   $('#setTelecel').value = db.floats.eMoney.Telecel;
   $('#setAirtelTigo').value = db.floats.eMoney.AirtelTigo;
 
-  // Sync the rate toggle button state with our remembered network
   $$('#rateNetworkToggle button').forEach(b => {
     b.classList.toggle('active', b.dataset.net === editingRateNetwork);
   });
@@ -1468,16 +1589,22 @@ function saveSettings(){
 /* ================= Export / Reset ================= */
 function exportCSV(){
   if(!db.transactions.length){ toast('No transactions to export','error'); return; }
-  const head = ['Date','Time','Customer','Phone','Network','Type','Amount','Fee','Commission','Note'];
+  const head = ['Date','Time','Customer','Phone','Network','Type','Amount','Cash Impact','E-Money Impact','Fee','Commission','Note'];
   const rows = db.transactions
     .slice()
     .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp))
-    .map(t => [
-      t.date || new Date(t.timestamp).toLocaleDateString(),
-      t.time || new Date(t.timestamp).toLocaleTimeString(),
-      t.customerName, t.customerPhone, t.network, t.type,
-      t.amount, t.fee||0, t.commission||0, t.note||''
-    ]);
+    .map(t => {
+      const d = getFloatDeltas(t.type, t.amount);
+      return [
+        t.date || new Date(t.timestamp).toLocaleDateString(),
+        t.time || new Date(t.timestamp).toLocaleTimeString(),
+        t.customerName, t.customerPhone, t.network, t.type,
+        t.amount,
+        (d.cash >= 0 ? '+' : '') + d.cash,
+        (d.eMoney >= 0 ? '+' : '') + d.eMoney,
+        t.fee||0, t.commission||0, t.note||''
+      ];
+    });
   const csv = [head, ...rows].map(r => r.map(v => {
     const s = String(v ?? '');
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
@@ -1543,7 +1670,6 @@ function hideUpdateBanner(){
 
 function applyUpdate(){
   hideUpdateBanner();
-
   if(swRegistration && swRegistration.waiting){
     swRegistration.waiting.postMessage({ type:'SKIP_WAITING' });
     setTimeout(() => { window.location.reload(); }, 1500);
@@ -1579,9 +1705,7 @@ function initPWA(){
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').then((reg) => {
         swRegistration = reg;
-
         if(reg.waiting) showUpdateBanner();
-
         reg.addEventListener('updatefound', () => {
           const nw = reg.installing;
           if(!nw) return;
@@ -1591,7 +1715,6 @@ function initPWA(){
             }
           });
         });
-
         setInterval(() => { reg.update().catch(() => {}); }, 60 * 60 * 1000);
       }).catch(err => console.warn('SW failed:', err));
 
@@ -1631,6 +1754,7 @@ document.addEventListener('DOMContentLoaded', () => {
     b.addEventListener('click', () => switchTab(b.dataset.tab));
   });
 
+  // Refresh preview whenever the amount changes
   $('#txAmount').addEventListener('input', suggestFeeAndCommission);
 
   const params = new URLSearchParams(location.search);
